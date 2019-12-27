@@ -17,7 +17,19 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.sujanmaharjan008.taskmanagerapi.api.UserAPI;
+import com.sujanmaharjan008.taskmanagerapi.serverresponse.ImageResponse;
+import com.sujanmaharjan008.taskmanagerapi.strictmode.StrictModeClass;
+import com.sujanmaharjan008.taskmanagerapi.url.Url;
+
 import java.io.File;
+import java.io.IOException;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import retrofit2.Call;
+import retrofit2.Response;
 
 public class RegistrationActivity extends AppCompatActivity {
 
@@ -25,6 +37,7 @@ public class RegistrationActivity extends AppCompatActivity {
     private EditText edtfirstName, edtlastName, edtPasswordR, edtCPasswordR, edtUsernameR;
     private Button btnRegister;
     String imagePath;
+    private String imageName = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,7 +72,7 @@ public class RegistrationActivity extends AppCompatActivity {
         Uri uri = data.getData();
         imageView.setImageURI(uri);
         imagePath = getRealPathFromUri(uri);
-//        previewImage(imagePath);
+        Toast.makeText(this, "Image Path is " + uri, Toast.LENGTH_SHORT).show();
     }
 
     public void setImage() {
@@ -80,11 +93,24 @@ public class RegistrationActivity extends AppCompatActivity {
         return result;
     }
 
-    private void previewImage(String imagePath) {
-        File imageFile = new File(imagePath);
-        if (imageFile.exists()) {
-            Bitmap bitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath());
-            imageView.setImageBitmap(bitmap);
+    private void setImageOnly(){
+        File file = new File(imagePath);
+        RequestBody requestBody = RequestBody.create(MediaType.parse("multipart/form-data"),file);
+        MultipartBody.Part body = MultipartBody.Part.createFormData("imageFile", file.getName(), requestBody);
+
+        UserAPI userAPI = Url.getInstance().create(UserAPI.class);
+        Call<ImageResponse> responseBodyCall = userAPI.uploadImage(body);
+
+        //Synchronous method
+        StrictModeClass.StrictMode();
+        try{
+            Response<ImageResponse> imageResponseResponse = responseBodyCall.execute();
+            imageName = imageResponseResponse.body().getFilename();
+            Toast.makeText(this, "Image name is " + imageName, Toast.LENGTH_SHORT).show();
+        }
+        catch (IOException e) {
+            Toast.makeText(this, "Error" + e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
         }
     }
 }
